@@ -15,8 +15,11 @@ import Footer from './components/Footer';
 const PrivateRoute = ({ children }) => {
   const { user, loading } = useAuth();
   if (loading) return (
-    <div className="flex items-center justify-center min-h-screen bg-[#0b0f19]">
-      <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-500"></div>
+    <div className="flex items-center justify-center min-h-screen bg-[#0B0B0B]">
+      <div className="flex flex-col items-center gap-4">
+        <div className="w-12 h-12 border-4 border-[#FF5A1F]/20 border-t-[#FF5A1F] rounded-full animate-spin"></div>
+        <span className="text-sm text-[#A8A8A8] font-medium tracking-wider">Loading...</span>
+      </div>
     </div>
   );
   return user ? children : <Navigate to="/auth" replace />;
@@ -26,8 +29,11 @@ const PrivateRoute = ({ children }) => {
 const AdminRoute = ({ children }) => {
   const { user, isAdmin, isClient, loading } = useAuth();
   if (loading) return (
-    <div className="flex items-center justify-center min-h-screen bg-[#0b0f19]">
-      <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-500"></div>
+    <div className="flex items-center justify-center min-h-screen bg-[#0B0B0B]">
+      <div className="flex flex-col items-center gap-4">
+        <div className="w-12 h-12 border-4 border-[#FF5A1F]/20 border-t-[#FF5A1F] rounded-full animate-spin"></div>
+        <span className="text-sm text-[#A8A8A8] font-medium tracking-wider">Loading...</span>
+      </div>
     </div>
   );
   return (user && (isAdmin || isClient)) ? children : <Navigate to="/" replace />;
@@ -37,9 +43,9 @@ function App() {
   return (
     <AuthProvider>
       <Router>
-        <div className="flex flex-col min-h-screen bg-[#0b0f19] text-gray-100 selection:bg-purple-500 selection:text-white">
+        <div className="flex flex-col min-h-screen bg-[#0B0B0B] text-gray-100 selection:bg-[#FF5A1F] selection:text-white">
           <Navbar />
-          <main className="flex-grow container mx-auto px-4 py-8">
+          <main className="flex-grow">
             <Routes>
               <Route path="/" element={<Home />} />
               <Route path="/movie/:id" element={<MovieDetail />} />

@@ -3,12 +3,41 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Mail, Lock, User as UserIcon, Film, Shield, ArrowRight } from 'lucide-react';
 
+const AuthField = ({ id, label, icon: Icon, type = 'text', value, onChange, placeholder, required = true }) => (
+  <div className="form-group auth-field">
+    <label htmlFor={id} className="type-label">
+      {label}
+    </label>
+    <div className="relative group">
+      <span className="absolute inset-y-0 left-0 flex items-center pl-3.5 text-text-muted transition-colors duration-200 group-focus-within:text-text-primary">
+        <Icon className="w-4 h-4" />
+      </span>
+      <input
+        id={id}
+        type={type}
+        required={required}
+        value={value}
+        onChange={onChange}
+        placeholder={placeholder}
+        className="auth-input w-full rounded-lg border border-border hover:border-border-hover bg-bg-secondary/60 py-3 pl-10 pr-4 text-sm text-text-primary
+          placeholder:text-text-placeholder backdrop-blur-sm
+          transition-all duration-300 ease-out
+          focus:outline-none focus:border-border-focus focus:bg-bg-secondary focus:ring-1 focus:ring-white/10"
+      />
+      <span
+        className="auth-input-line absolute bottom-0 left-3 right-3 h-px bg-text-primary origin-left scale-x-0 transition-transform duration-300 ease-out group-focus-within:scale-x-100"
+        aria-hidden="true"
+      />
+    </div>
+  </div>
+);
+
 const Auth = () => {
   const [isLogin, setIsLogin] = useState(true);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [role, setRole] = useState('CUSTOMER'); // CUSTOMER, CLIENT, ADMIN
+  const [role, setRole] = useState('CUSTOMER');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
@@ -44,7 +73,6 @@ const Auth = () => {
       if (result.success) {
         setSuccess('Successfully registered! You can now log in.');
         setIsLogin(true);
-        // Clean inputs
         setPassword('');
       } else {
         setError(result.error);
@@ -52,154 +80,165 @@ const Auth = () => {
     }
   };
 
+  const switchMode = (login) => {
+    setIsLogin(login);
+    setError('');
+    setSuccess('');
+  };
+
   return (
-    <div className="min-h-[75vh] flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8 glass rounded-2xl p-8 relative overflow-hidden shadow-2xl shadow-purple-900/10">
-        
-        {/* Glow effect backdrops */}
-        <div className="absolute -top-10 -right-10 w-40 h-40 bg-purple-500/10 rounded-full blur-3xl pointer-events-none"></div>
-        <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none"></div>
+    <div className="min-h-screen flex items-center justify-center px-4 sm:px-6 py-16 lg:py-20 bg-bg-base">
+      <div className="w-full max-w-[420px] animate-scaleIn">
+        <div className="relative overflow-hidden rounded-2xl border border-border glass p-10 sm:p-12 shadow-xl">
+          {/* Ambient glow */}
+          <div
+            className="pointer-events-none absolute -top-20 -right-20 h-40 w-40 rounded-full bg-white/[0.03] blur-3xl"
+            aria-hidden="true"
+          />
 
-        <div className="text-center">
-          <div className="flex justify-center mb-3">
-            <div className="bg-purple-650 p-3 rounded-2xl shadow-lg shadow-purple-500/20">
-              <Film className="w-8 h-8 text-white animate-pulse" />
+          <div className="relative space-y-8">
+            {/* Brand */}
+            <div className="text-center space-y-4">
+              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl border border-border bg-bg-elevated">
+                <Film className="w-5 h-5 text-text-primary" />
+              </div>
+              <div className="space-y-1.5">
+                <h1 className="text-2xl font-semibold tracking-tight text-text-primary">
+                  {isLogin ? 'Welcome back' : 'Create account'}
+                </h1>
+                <p className="text-sm text-text-secondary leading-relaxed">
+                  {isLogin
+                    ? 'Sign in to access your tickets and bookings'
+                    : 'Join CinePass to start booking shows'}
+                </p>
+              </div>
             </div>
-          </div>
-          <h2 className="text-3xl font-extrabold text-white tracking-tight">
-            {isLogin ? 'Welcome Back' : 'Create an Account'}
-          </h2>
-          <p className="mt-2 text-sm text-gray-400">
-            {isLogin ? 'Sign in to access your movie tickets' : 'Join CinePass to start booking shows'}
-          </p>
-        </div>
 
-        {error && (
-          <div className="bg-red-950/40 border border-red-500/35 text-red-300 px-4 py-3 rounded-lg text-sm">
-            {error}
-          </div>
-        )}
+            {/* Mode toggle */}
+            <div className="tabs-pill flex w-full">
+              <button
+                type="button"
+                onClick={() => switchMode(true)}
+                className={`flex-1 tab-pill ${isLogin ? 'tab-pill-active' : ''}`}
+              >
+                Sign In
+              </button>
+              <button
+                type="button"
+                onClick={() => switchMode(false)}
+                className={`flex-1 tab-pill ${!isLogin ? 'tab-pill-active' : ''}`}
+              >
+                Register
+              </button>
+            </div>
 
-        {success && (
-          <div className="bg-emerald-950/40 border border-emerald-500/35 text-emerald-300 px-4 py-3 rounded-lg text-sm">
-            {success}
-          </div>
-        )}
+            {/* Alerts */}
+            {error && (
+              <div className="alert-error animate-fadeIn" role="alert">
+                {error}
+              </div>
+            )}
+            {success && (
+              <div className="alert-neutral animate-fadeIn" role="status">
+                {success}
+              </div>
+            )}
 
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          <div className="space-y-4">
-            
-            {/* Name Field (Sign Up Only) */}
-            {!isLogin && (
-              <div>
-                <label className="block text-sm font-medium text-gray-400 mb-1.5">Full Name</label>
-                <div className="relative">
-                  <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-gray-500">
-                    <UserIcon className="w-5 h-5" />
-                  </span>
-                  <input
-                    type="text"
-                    required
+            {/* Form */}
+            <form className="space-y-5" onSubmit={handleSubmit}>
+              <div
+                className={`space-y-4 transition-all duration-300 ease-out ${
+                  isLogin ? '' : 'animate-fadeIn'
+                }`}
+              >
+                {!isLogin && (
+                  <AuthField
+                    id="name"
+                    label="Full name"
+                    icon={UserIcon}
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     placeholder="John Doe"
-                    className="w-full bg-slate-900/60 border border-white/10 rounded-xl py-3 pl-11 pr-4 text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-all text-sm"
                   />
-                </div>
-              </div>
-            )}
+                )}
 
-            {/* Email Field */}
-            <div>
-              <label className="block text-sm font-medium text-gray-400 mb-1.5">Email Address</label>
-              <div className="relative">
-                <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-gray-500">
-                  <Mail className="w-5 h-5" />
-                </span>
-                <input
+                <AuthField
+                  id="email"
+                  label="Email address"
+                  icon={Mail}
                   type="email"
-                  required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="name@example.com"
-                  className="w-full bg-slate-900/60 border border-white/10 rounded-xl py-3 pl-11 pr-4 text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-all text-sm"
                 />
-              </div>
-            </div>
 
-            {/* Password Field */}
-            <div>
-              <label className="block text-sm font-medium text-gray-400 mb-1.5">Password</label>
-              <div className="relative">
-                <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-gray-500">
-                  <Lock className="w-5 h-5" />
-                </span>
-                <input
+                <AuthField
+                  id="password"
+                  label="Password"
+                  icon={Lock}
                   type="password"
-                  required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="w-full bg-slate-900/60 border border-white/10 rounded-xl py-3 pl-11 pr-4 text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-all text-sm"
                 />
+
+                {!isLogin && (
+                  <div className="form-group animate-fadeIn">
+                    <label className="type-label flex items-center gap-1.5">
+                      <Shield className="w-3.5 h-3.5" />
+                      Account type
+                    </label>
+                    <div className="grid grid-cols-3 gap-2">
+                      {['CUSTOMER', 'CLIENT', 'ADMIN'].map((r) => (
+                        <button
+                          key={r}
+                          type="button"
+                          onClick={() => setRole(r)}
+                          className={`
+                            rounded-lg border py-2.5 px-2 text-xs font-medium
+                            transition-all duration-200 ease-out cursor-pointer
+                            ${role === r
+                              ? 'bg-text-primary text-text-inverse border-text-primary scale-[1.02]'
+                              : 'bg-bg-secondary/60 border-border text-text-secondary hover:border-border-hover hover:text-text-primary'
+                            }
+                          `}
+                        >
+                          {r}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
-            </div>
 
-            {/* Role Field (Sign Up Only) */}
-            {!isLogin && (
-              <div>
-                <label className="block text-sm font-medium text-gray-400 mb-1.5 flex items-center gap-1.5">
-                  <Shield className="w-4 h-4 text-purple-400" /> Account Type
-                </label>
-                <div className="grid grid-cols-3 gap-2">
-                  {['CUSTOMER', 'CLIENT', 'ADMIN'].map((r) => (
-                    <button
-                      key={r}
-                      type="button"
-                      onClick={() => setRole(r)}
-                      className={`py-2 px-3 rounded-lg text-xs font-semibold border transition-all cursor-pointer ${
-                        role === r
-                          ? 'bg-purple-600/30 border-purple-500 text-purple-200'
-                          : 'bg-slate-900/40 border-white/5 text-gray-400 hover:border-white/10'
-                      }`}
-                    >
-                      {r}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
+              <button
+                type="submit"
+                disabled={loading}
+                className="group w-full flex items-center justify-center gap-2 btn-primary py-3.5 mt-2
+                  disabled:opacity-40 cursor-pointer transition-all duration-200 hover-lift-sm active:scale-[0.98]"
+              >
+                {loading ? (
+                  <div className="spinner-sm border-text-inverse/20 border-t-text-inverse" />
+                ) : (
+                  <>
+                    <span>{isLogin ? 'Sign In' : 'Create Account'}</span>
+                    <ArrowRight className="w-4 h-4 transition-transform duration-200 group-hover:translate-x-0.5" />
+                  </>
+                )}
+              </button>
+            </form>
+
+            <p className="text-center text-sm text-text-muted">
+              {isLogin ? "Don't have an account?" : 'Already have an account?'}{' '}
+              <button
+                type="button"
+                onClick={() => switchMode(!isLogin)}
+                className="font-medium text-text-primary hover:text-text-secondary transition-colors duration-200 cursor-pointer"
+              >
+                {isLogin ? 'Sign up' : 'Sign in'}
+              </button>
+            </p>
           </div>
-
-          <div>
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white rounded-xl py-3 px-4 font-semibold shadow-lg shadow-purple-500/20 hover:shadow-purple-500/35 transition-all text-sm disabled:opacity-50 cursor-pointer"
-            >
-              {loading ? (
-                <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white"></div>
-              ) : (
-                <>
-                  <span>{isLogin ? 'Sign In' : 'Create Account'}</span>
-                  <ArrowRight className="w-4 h-4" />
-                </>
-              )}
-            </button>
-          </div>
-        </form>
-
-        <div className="text-center mt-6">
-          <button
-            onClick={() => {
-              setIsLogin(!isLogin);
-              setError('');
-              setSuccess('');
-            }}
-            className="text-sm font-medium text-purple-450 hover:text-purple-400 transition-colors cursor-pointer"
-          >
-            {isLogin ? "Don't have an account? Sign Up" : 'Already have an account? Sign In'}
-          </button>
         </div>
       </div>
     </div>

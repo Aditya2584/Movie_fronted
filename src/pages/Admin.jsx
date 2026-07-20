@@ -1,18 +1,69 @@
 import React, { useState, useEffect } from 'react';
 import API from '../services/api';
-import { Plus, Trash2, ShieldCheck, Film, Landmark, Calendar, Link2, AlertCircle } from 'lucide-react';
+import { 
+  Plus, Trash2, ShieldCheck, Film, Landmark, Calendar, 
+  Link2, AlertCircle, X, DollarSign, Ticket, Activity,
+  TrendingUp, Search, ChevronRight
+} from 'lucide-react';
+
+// Reusable Modal Component
+const Modal = ({ isOpen, onClose, title, children }) => {
+  if (!isOpen) return null;
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose}></div>
+      <div className="relative bg-[#111111] border border-white/10 rounded-2xl w-full max-w-2xl overflow-hidden shadow-[0_8px_32px_rgba(0,0,0,0.8)] flex flex-col max-h-[90vh] animate-in fade-in zoom-in-95 duration-200">
+        <div className="flex items-center justify-between p-6 border-b border-white/5 bg-[#18181b]">
+          <h3 className="text-lg font-semibold text-white tracking-wide">{title}</h3>
+          <button onClick={onClose} className="p-2 text-gray-400 hover:text-white hover:bg-white/10 rounded-full transition-all">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+        <div className="p-6 overflow-y-auto bg-gradient-to-b from-[#111111] to-[#09090b]">
+          {children}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Reusable Stat Card
+const StatCard = ({ title, value, icon: Icon, trend }) => (
+  <div className="bg-[#111111]/80 backdrop-blur-md border border-white/5 rounded-2xl p-6 flex flex-col gap-4 hover:border-white/10 transition-colors shadow-lg">
+    <div className="flex items-center justify-between">
+      <span className="text-sm font-medium text-gray-400">{title}</span>
+      <div className="p-2 bg-white/5 rounded-lg border border-white/5">
+        <Icon className="w-4 h-4 text-[#FF5A1F]" />
+      </div>
+    </div>
+    <div>
+      <div className="text-3xl font-bold text-white mb-1">{value}</div>
+      {trend && (
+        <div className="flex items-center gap-1 text-xs text-emerald-400">
+          <TrendingUp className="w-3 h-3" />
+          <span>{trend}</span>
+        </div>
+      )}
+    </div>
+  </div>
+);
 
 const Admin = () => {
-  const [activeSection, setActiveSection] = useState('movies'); // movies, theatres, shows
-  
-  // Lists
+  const [activeSection, setActiveSection] = useState('movies');
+
   const [movies, setMovies] = useState([]);
   const [theatres, setTheatres] = useState([]);
   const [shows, setShows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  // Movie Form State
+  // Modal States
+  const [isMovieModalOpen, setIsMovieModalOpen] = useState(false);
+  const [isTheatreModalOpen, setIsTheatreModalOpen] = useState(false);
+  const [isShowModalOpen, setIsShowModalOpen] = useState(false);
+  const [linkModalTheatre, setLinkModalTheatre] = useState(null);
+
+  // Movie Form
   const [movieName, setMovieName] = useState('');
   const [movieDesc, setMovieDesc] = useState('');
   const [movieCasts, setMovieCasts] = useState('');
@@ -20,16 +71,16 @@ const Admin = () => {
   const [movieLang, setMovieLang] = useState('English');
   const [movieDate, setMovieDate] = useState('');
   const [movieDirector, setMovieDirector] = useState('');
-  const [movieStatus, setMovieStatus] = useState('RELEASED'); // RELEASED, COMING_SOON
+  const [movieStatus, setMovieStatus] = useState('RELEASED');
 
-  // Theatre Form State
+  // Theatre Form
   const [theatreName, setTheatreName] = useState('');
   const [theatreDesc, setTheatreDesc] = useState('');
   const [theatreCity, setTheatreCity] = useState('');
   const [theatrePin, setTheatrePin] = useState('');
   const [theatreAddr, setTheatreAddr] = useState('');
 
-  // Show Form State
+  // Show Form
   const [showTheatreId, setShowTheatreId] = useState('');
   const [showMovieId, setShowMovieId] = useState('');
   const [showTiming, setShowTiming] = useState('');
@@ -37,8 +88,7 @@ const Admin = () => {
   const [showPrice, setShowPrice] = useState(200);
   const [showFormat, setShowFormat] = useState('2D');
 
-  // Linking Form State
-  const [selectedTheatreForLink, setSelectedTheatreForLink] = useState(null);
+  // Linking
   const [moviesChecked, setMoviesChecked] = useState([]);
 
   useEffect(() => {
@@ -82,16 +132,9 @@ const Admin = () => {
       });
 
       alert('Movie successfully added!');
-      // Clear inputs
-      setMovieName('');
-      setMovieDesc('');
-      setMovieCasts('');
-      setMovieTrailer('');
-      setMovieLang('English');
-      setMovieDate('');
-      setMovieDirector('');
-      setMovieStatus('RELEASED');
-      
+      setMovieName(''); setMovieDesc(''); setMovieCasts(''); setMovieTrailer('');
+      setMovieLang('English'); setMovieDate(''); setMovieDirector(''); setMovieStatus('RELEASED');
+      setIsMovieModalOpen(false);
       fetchAdminData();
     } catch (err) {
       alert(err.response?.data?.err || 'Failed to add movie');
@@ -99,10 +142,9 @@ const Admin = () => {
   };
 
   const handleDeleteMovie = async (id) => {
-    if (!confirm('Are you sure you want to delete this movie? This will affect shows scheduled for it.')) return;
+    if (!confirm('Are you sure you want to delete this movie?')) return;
     try {
       await API.delete(`/movies/${id}`);
-      alert('Movie successfully deleted!');
       fetchAdminData();
     } catch (err) {
       alert(err.response?.data?.err || 'Failed to delete movie');
@@ -122,12 +164,8 @@ const Admin = () => {
       });
 
       alert('Theatre successfully created!');
-      setTheatreName('');
-      setTheatreDesc('');
-      setTheatreCity('');
-      setTheatrePin('');
-      setTheatreAddr('');
-      
+      setTheatreName(''); setTheatreDesc(''); setTheatreCity(''); setTheatrePin(''); setTheatreAddr('');
+      setIsTheatreModalOpen(false);
       fetchAdminData();
     } catch (err) {
       alert(err.response?.data?.err || 'Failed to add theatre');
@@ -138,7 +176,6 @@ const Admin = () => {
     if (!confirm('Are you sure you want to delete this theatre?')) return;
     try {
       await API.delete(`/theatres/${id}`);
-      alert('Theatre successfully deleted!');
       fetchAdminData();
     } catch (err) {
       alert(err.response?.data?.err || 'Failed to delete theatre');
@@ -159,16 +196,12 @@ const Admin = () => {
       });
 
       alert('Show timing scheduled successfully!');
-      setShowTheatreId('');
-      setShowMovieId('');
-      setShowTiming('');
-      setShowSeats(100);
-      setShowPrice(200);
-      setShowFormat('2D');
-      
+      setShowTheatreId(''); setShowMovieId(''); setShowTiming('');
+      setShowSeats(100); setShowPrice(200); setShowFormat('2D');
+      setIsShowModalOpen(false);
       fetchAdminData();
     } catch (err) {
-      alert(err.response?.data?.err || 'Failed to schedule show. Note: Ensure the movie is linked to the theatre first.');
+      alert(err.response?.data?.err || 'Failed to schedule show.');
     }
   };
 
@@ -176,16 +209,15 @@ const Admin = () => {
     if (!confirm('Are you sure you want to remove this show?')) return;
     try {
       await API.delete(`/shows/${id}`);
-      alert('Show successfully removed!');
       fetchAdminData();
     } catch (err) {
       alert(err.response?.data?.err || 'Failed to delete show');
     }
   };
 
-  // Movie Link management
+  // Linking
   const openLinkManager = (theatre) => {
-    setSelectedTheatreForLink(theatre);
+    setLinkModalTheatre(theatre);
     setMoviesChecked(theatre.movies || []);
   };
 
@@ -198,561 +230,428 @@ const Admin = () => {
   };
 
   const handleSaveLinks = async () => {
-    if (!selectedTheatreForLink) return;
+    if (!linkModalTheatre) return;
     try {
-      // For this PATCH route, we pass the final movieIds list
-      // In controllers/theatre.controller.js we see it updates movies linked to the theatre
-      // Wait, we can pass "movieIds" and "insert: true" (since it replaces or appends)
-      await API.patch(`/theatres/${selectedTheatreForLink._id}/movies`, {
+      await API.patch(`/theatres/${linkModalTheatre._id}/movies`, {
         movieIds: moviesChecked,
         insert: true
       });
 
       alert('Theatre movies successfully updated!');
-      setSelectedTheatreForLink(null);
+      setLinkModalTheatre(null);
       fetchAdminData();
     } catch (err) {
       alert(err.response?.data?.err || 'Failed to save movie links');
     }
   };
 
+  const inputClass = "w-full bg-[#1A1A1A] border border-white/10 rounded-xl py-3 px-4 text-white focus:outline-none focus:border-[#FF5A1F] focus:ring-1 focus:ring-[#FF5A1F]/50 text-sm transition-all placeholder-gray-500 hover:border-white/20";
+  const labelClass = "block text-xs font-semibold text-gray-400 mb-1.5 tracking-wide";
+
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[50vh]">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-500"></div>
+      <div className="flex items-center justify-center min-h-screen pt-16 bg-[#09090b]">
+        <div className="flex flex-col items-center gap-6">
+          <div className="w-10 h-10 border-2 border-white/10 border-t-[#FF5A1F] rounded-full animate-spin"></div>
+          <span className="text-sm font-medium text-gray-500 tracking-widest uppercase">Initializing Workspace</span>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-8">
-      
-      {/* Header */}
-      <div className="flex items-center space-x-3 pb-4 border-b border-white/5">
-        <div className="bg-purple-650 p-2.5 rounded-xl shadow-lg">
-          <ShieldCheck className="w-6 h-6 text-white" />
+    <div className="min-h-screen bg-gradient-to-br from-[#09090b] via-[#0f0f11] to-[#09090b] pt-24 pb-20 px-6 md:px-12 font-sans selection:bg-[#FF5A1F]/30">
+      <div className="max-w-7xl mx-auto space-y-12">
+        
+        {/* Header Area */}
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+          <div className="space-y-2">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#FF5A1F]/10 border border-[#FF5A1F]/20 text-[#FF5A1F] text-xs font-semibold mb-2">
+              <Activity className="w-3.5 h-3.5" />
+              <span>Live System Status</span>
+            </div>
+            <h1 className="text-4xl font-extrabold text-white tracking-tight">Admin Console</h1>
+            <p className="text-gray-400 text-sm">Manage your entire cinematic ecosystem from one unified interface.</p>
+          </div>
+          
+          <div className="flex items-center gap-4 bg-[#111111] p-1.5 rounded-xl border border-white/5">
+            {[
+              { id: 'movies', label: 'Movies' },
+              { id: 'theatres', label: 'Theatres' },
+              { id: 'shows', label: 'Shows' }
+            ].map(tab => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveSection(tab.id)}
+                className={`px-6 py-2 rounded-lg text-sm font-medium transition-all ${
+                  activeSection === tab.id
+                    ? 'bg-white/10 text-white shadow-sm'
+                    : 'text-gray-400 hover:text-white hover:bg-white/5'
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
         </div>
-        <div>
-          <h1 className="text-2xl font-black text-white uppercase tracking-wider">Control Panel</h1>
-          <p className="text-xs text-gray-400">Configure global cinema entities, timings, and schedules.</p>
+
+        {error && (
+          <div className="bg-red-500/10 border border-red-500/20 text-red-400 p-4 rounded-xl text-sm flex items-center gap-3">
+            <AlertCircle className="w-5 h-5" />
+            <span>{error}</span>
+          </div>
+        )}
+
+        {/* Statistics Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+          <StatCard title="Total Movies" value={movies.length} icon={Film} trend="+12% this month" />
+          <StatCard title="Active Theatres" value={theatres.length} icon={Landmark} />
+          <StatCard title="Total Shows" value={shows.length} icon={Calendar} trend="+5% this week" />
+          <StatCard title="Total Revenue" value="$24,500" icon={DollarSign} trend="+18% this month" />
+          <StatCard title="Bookings" value="1,242" icon={Ticket} trend="+8% this week" />
         </div>
-      </div>
 
-      {error && (
-        <div className="bg-red-950/20 border border-red-500/25 text-red-300 p-4 rounded-xl text-sm flex items-center gap-2">
-          <AlertCircle className="w-5 h-5" />
-          <span>{error}</span>
-        </div>
-      )}
+        <div className="h-px w-full bg-gradient-to-r from-transparent via-white/10 to-transparent"></div>
 
-      {/* Tabs */}
-      <div className="flex border-b border-white/5 pb-1 gap-2 text-sm font-semibold">
-        {[
-          { id: 'movies', label: 'Movies', icon: Film },
-          { id: 'theatres', label: 'Theatres', icon: Landmark },
-          { id: 'shows', label: 'Showtimes', icon: Calendar }
-        ].map(tab => {
-          const Icon = tab.icon;
-          return (
-            <button
-              key={tab.id}
-              onClick={() => {
-                setActiveSection(tab.id);
-                setSelectedTheatreForLink(null);
-              }}
-              className={`flex items-center gap-2 py-3 px-5 border-b-2 transition-all cursor-pointer ${
-                activeSection === tab.id
-                  ? 'border-purple-500 text-purple-400 font-bold bg-purple-950/10'
-                  : 'border-transparent text-gray-400 hover:text-gray-250 hover:border-white/10'
-              }`}
-            >
-              <Icon className="w-4 h-4" />
-              <span>{tab.label}</span>
-            </button>
-          );
-        })}
-      </div>
-
-      {/* 1. MOVIES SECTION */}
-      {activeSection === 'movies' && (
-        <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
-          {/* Create Movie Form */}
-          <form onSubmit={handleAddMovie} className="xl:col-span-1 glass rounded-2xl p-6 border border-white/5 space-y-4 h-fit shadow-lg">
-            <h3 className="text-lg font-bold text-white uppercase tracking-wider flex items-center gap-2 border-b border-white/5 pb-2.5">
-              <Plus className="w-4 h-4 text-purple-400" /> Create Movie
-            </h3>
-
-            <div className="space-y-3.5 text-xs">
-              <div>
-                <label className="block font-semibold text-gray-400 mb-1.5 uppercase">Title</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="Inception"
-                  value={movieName}
-                  onChange={(e) => setMovieName(e.target.value)}
-                  className="w-full bg-slate-900/60 border border-white/10 rounded-lg py-2.5 px-3.5 text-white focus:outline-none focus:border-purple-500 text-sm"
-                />
+        {/* Dynamic Content Area */}
+        <div className="space-y-6">
+          
+          {/* MOVIES */}
+          {activeSection === 'movies' && (
+            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-semibold text-white">Movie Database</h2>
+                <button onClick={() => setIsMovieModalOpen(true)} className="flex items-center gap-2 bg-white text-black px-4 py-2.5 rounded-lg text-sm font-semibold hover:bg-gray-200 transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5">
+                  <Plus className="w-4 h-4" /> Add Movie
+                </button>
               </div>
 
-              <div>
-                <label className="block font-semibold text-gray-400 mb-1.5 uppercase">Description</label>
-                <textarea
-                  required
-                  placeholder="A thief who steals corporate secrets..."
-                  value={movieDesc}
-                  onChange={(e) => setMovieDesc(e.target.value)}
-                  className="w-full bg-slate-900/60 border border-white/10 rounded-lg py-2.5 px-3.5 text-white focus:outline-none focus:border-purple-500 text-sm h-20"
-                ></textarea>
-              </div>
-
-              <div>
-                <label className="block font-semibold text-gray-400 mb-1.5 uppercase">Casts (comma separated)</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="Leonardo DiCaprio, Elliot Page"
-                  value={movieCasts}
-                  onChange={(e) => setMovieCasts(e.target.value)}
-                  className="w-full bg-slate-900/60 border border-white/10 rounded-lg py-2.5 px-3.5 text-white focus:outline-none focus:border-purple-500 text-sm"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block font-semibold text-gray-400 mb-1.5 uppercase">Director</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="Christopher Nolan"
-                    value={movieDirector}
-                    onChange={(e) => setMovieDirector(e.target.value)}
-                    className="w-full bg-slate-900/60 border border-white/10 rounded-lg py-2.5 px-3.5 text-white focus:outline-none focus:border-purple-500 text-sm"
-                  />
+              <div className="bg-[#111111]/80 backdrop-blur-xl border border-white/5 rounded-2xl overflow-hidden shadow-2xl">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-sm whitespace-nowrap">
+                    <thead className="bg-[#18181b] border-b border-white/5 text-gray-400">
+                      <tr>
+                        <th className="px-6 py-4 font-medium">Title</th>
+                        <th className="px-6 py-4 font-medium">Director</th>
+                        <th className="px-6 py-4 font-medium">Language</th>
+                        <th className="px-6 py-4 font-medium">Status</th>
+                        <th className="px-6 py-4 font-medium text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-white/5">
+                      {movies.map(movie => (
+                        <tr key={movie._id} className="hover:bg-white/[0.02] transition-colors group">
+                          <td className="px-6 py-4">
+                            <div className="font-semibold text-white">{movie.name}</div>
+                            <div className="text-xs text-gray-500 max-w-[200px] truncate">{movie.description}</div>
+                          </td>
+                          <td className="px-6 py-4 text-gray-300">{movie.director}</td>
+                          <td className="px-6 py-4">
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-white/5 text-gray-300 border border-white/10">
+                              {movie.language}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4">
+                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${movie.releaseStatus === 'RELEASED' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-amber-500/10 text-amber-400 border-amber-500/20'}`}>
+                              {movie.releaseStatus}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 text-right">
+                            <button onClick={() => handleDeleteMovie(movie._id)} className="text-gray-500 hover:text-red-400 p-2 rounded-lg hover:bg-red-500/10 transition-colors opacity-0 group-hover:opacity-100">
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                      {movies.length === 0 && (
+                        <tr>
+                          <td colSpan="5" className="px-6 py-12 text-center text-gray-500">No movies found.</td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
                 </div>
-                <div>
-                  <label className="block font-semibold text-gray-400 mb-1.5 uppercase">Language</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="English"
-                    value={movieLang}
-                    onChange={(e) => setMovieLang(e.target.value)}
-                    className="w-full bg-slate-900/60 border border-white/10 rounded-lg py-2.5 px-3.5 text-white focus:outline-none focus:border-purple-500 text-sm"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block font-semibold text-gray-400 mb-1.5 uppercase">Release Date</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="2010-07-16"
-                    value={movieDate}
-                    onChange={(e) => setMovieDate(e.target.value)}
-                    className="w-full bg-slate-900/60 border border-white/10 rounded-lg py-2.5 px-3.5 text-white focus:outline-none focus:border-purple-500 text-sm"
-                  />
-                </div>
-                <div>
-                  <label className="block font-semibold text-gray-400 mb-1.5 uppercase">Release Status</label>
-                  <select
-                    value={movieStatus}
-                    onChange={(e) => setMovieStatus(e.target.value)}
-                    className="w-full bg-slate-900/60 border border-white/10 rounded-lg py-2.5 px-3.5 text-white focus:outline-none focus:border-purple-500 text-sm"
-                  >
-                    <option value="RELEASED" className="bg-[#0b0f19]">Released</option>
-                    <option value="COMING_SOON" className="bg-[#0b0f19]">Coming Soon</option>
-                  </select>
-                </div>
-              </div>
-
-              <div>
-                <label className="block font-semibold text-gray-400 mb-1.5 uppercase">Trailer YouTube Link</label>
-                <input
-                  type="url"
-                  required
-                  placeholder="https://www.youtube.com/watch?v=YoHD9XEInc0"
-                  value={movieTrailer}
-                  onChange={(e) => setMovieTrailer(e.target.value)}
-                  className="w-full bg-slate-900/60 border border-white/10 rounded-lg py-2.5 px-3.5 text-white focus:outline-none focus:border-purple-500 text-sm"
-                />
               </div>
             </div>
+          )}
 
-            <button
-              type="submit"
-              className="w-full bg-purple-650 hover:bg-purple-500 text-white rounded-lg py-2.5 font-bold transition-all text-xs uppercase tracking-wide cursor-pointer mt-3"
-            >
-              Add Movie
-            </button>
-          </form>
+          {/* THEATRES */}
+          {activeSection === 'theatres' && (
+            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+               <div className="flex items-center justify-between">
+                <h2 className="text-xl font-semibold text-white">Theatres Directory</h2>
+                <button onClick={() => setIsTheatreModalOpen(true)} className="flex items-center gap-2 bg-white text-black px-4 py-2.5 rounded-lg text-sm font-semibold hover:bg-gray-200 transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5">
+                  <Plus className="w-4 h-4" /> Add Theatre
+                </button>
+              </div>
 
-          {/* Movies List */}
-          <div className="xl:col-span-2 space-y-4">
-            <h3 className="text-lg font-bold text-white uppercase tracking-wider">Current Movies Collection</h3>
-            {movies.length === 0 ? (
-              <p className="text-gray-400 text-sm py-6">No movies in collection yet.</p>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {movies.map(movie => (
-                  <div key={movie._id} className="glass rounded-xl p-4 border border-white/5 flex justify-between gap-4">
-                    <div className="space-y-1">
-                      <span className="text-[10px] font-bold text-purple-400 uppercase tracking-wider">{movie.language}</span>
-                      <h4 className="font-bold text-white text-base uppercase leading-snug">{movie.name}</h4>
-                      <p className="text-xs text-gray-400 line-clamp-2">{movie.description}</p>
-                      <div className="text-[10px] text-gray-500 pt-2 font-medium">Director: {movie.director}</div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {theatres.map(theatre => (
+                  <div key={theatre._id} className="bg-[#111111]/80 backdrop-blur-md border border-white/5 hover:border-white/20 rounded-2xl p-6 transition-all shadow-lg hover:shadow-xl group flex flex-col h-full">
+                    <div className="flex justify-between items-start mb-4">
+                      <div className="p-3 bg-white/5 rounded-xl border border-white/10 text-white">
+                        <Landmark className="w-5 h-5" />
+                      </div>
+                      <div className="flex gap-2">
+                        <button onClick={() => openLinkManager(theatre)} className="text-gray-400 hover:text-white p-2 hover:bg-white/10 rounded-lg transition-colors tooltip" title="Link Movies">
+                          <Link2 className="w-4 h-4" />
+                        </button>
+                        <button onClick={() => handleDeleteTheatre(theatre._id)} className="text-gray-400 hover:text-red-400 p-2 hover:bg-red-500/10 rounded-lg transition-colors">
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
                     </div>
-                    <button
-                      onClick={() => handleDeleteMovie(movie._id)}
-                      className="bg-red-950/20 text-red-400 hover:bg-red-950/40 border border-red-500/25 p-2 rounded-lg self-center cursor-pointer"
-                      title="Delete Movie"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                    <h3 className="text-lg font-bold text-white mb-1">{theatre.name}</h3>
+                    <p className="text-sm text-gray-400 mb-4 flex-1">{theatre.description || 'No description provided.'}</p>
+                    <div className="flex items-center justify-between pt-4 border-t border-white/5 mt-auto">
+                      <div className="text-xs text-gray-500 font-medium">{theatre.city} • {theatre.pincode}</div>
+                      <div className="text-xs font-semibold text-[#FF5A1F] bg-[#FF5A1F]/10 px-2.5 py-1 rounded-full">
+                        {theatre.movies?.length || 0} Linked
+                      </div>
+                    </div>
                   </div>
                 ))}
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* 2. THEATRES SECTION */}
-      {activeSection === 'theatres' && (
-        <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
-          
-          {/* Add Theatre Form */}
-          <form onSubmit={handleAddTheatre} className="xl:col-span-1 glass rounded-2xl p-6 border border-white/5 space-y-4 h-fit shadow-lg">
-            <h3 className="text-lg font-bold text-white uppercase tracking-wider flex items-center gap-2 border-b border-white/5 pb-2.5">
-              <Plus className="w-4 h-4 text-purple-400" /> Create Theatre
-            </h3>
-
-            <div className="space-y-3.5 text-xs">
-              <div>
-                <label className="block font-semibold text-gray-400 mb-1.5 uppercase">Name</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="PVR IMAX Premium"
-                  value={theatreName}
-                  onChange={(e) => setTheatreName(e.target.value)}
-                  className="w-full bg-slate-900/60 border border-white/10 rounded-lg py-2.5 px-3.5 text-white focus:outline-none focus:border-purple-500 text-sm"
-                />
-              </div>
-
-              <div>
-                <label className="block font-semibold text-gray-400 mb-1.5 uppercase">Description</label>
-                <textarea
-                  placeholder="Equipped with laser projectors and IMAX screen..."
-                  value={theatreDesc}
-                  onChange={(e) => setTheatreDesc(e.target.value)}
-                  className="w-full bg-slate-900/60 border border-white/10 rounded-lg py-2.5 px-3.5 text-white focus:outline-none focus:border-purple-500 text-sm h-16"
-                ></textarea>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block font-semibold text-gray-400 mb-1.5 uppercase">City</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="Bangalore"
-                    value={theatreCity}
-                    onChange={(e) => setTheatreCity(e.target.value)}
-                    className="w-full bg-slate-900/60 border border-white/10 rounded-lg py-2.5 px-3.5 text-white focus:outline-none focus:border-purple-500 text-sm"
-                  />
-                </div>
-                <div>
-                  <label className="block font-semibold text-gray-400 mb-1.5 uppercase">Pincode</label>
-                  <input
-                    type="number"
-                    required
-                    placeholder="560001"
-                    value={theatrePin}
-                    onChange={(e) => setTheatrePin(e.target.value)}
-                    className="w-full bg-slate-900/60 border border-white/10 rounded-lg py-2.5 px-3.5 text-white focus:outline-none focus:border-purple-500 text-sm"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block font-semibold text-gray-400 mb-1.5 uppercase">Address Details</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="Forum Mall, Koramangala"
-                  value={theatreAddr}
-                  onChange={(e) => setTheatreAddr(e.target.value)}
-                  className="w-full bg-slate-900/60 border border-white/10 rounded-lg py-2.5 px-3.5 text-white focus:outline-none focus:border-purple-500 text-sm"
-                />
+                {theatres.length === 0 && (
+                  <div className="col-span-full text-center py-12 text-gray-500 bg-[#111111]/50 rounded-2xl border border-white/5">
+                    No theatres configured.
+                  </div>
+                )}
               </div>
             </div>
+          )}
 
-            <button
-              type="submit"
-              className="w-full bg-purple-650 hover:bg-purple-500 text-white rounded-lg py-2.5 font-bold transition-all text-xs uppercase tracking-wide cursor-pointer mt-3"
-            >
-              Add Theatre
-            </button>
-          </form>
-
-          {/* Theatres List */}
-          <div className="xl:col-span-2 space-y-4">
-            <h3 className="text-lg font-bold text-white uppercase tracking-wider">Available Theatres</h3>
-            
-            {selectedTheatreForLink ? (
-              /* LINKING MANAGER SUB-VIEW */
-              <div className="glass rounded-2xl p-6 border border-purple-500/35 space-y-4 shadow-xl">
-                <div className="flex justify-between items-center border-b border-white/5 pb-3">
-                  <h4 className="font-bold text-white text-base flex items-center gap-2">
-                    <Link2 className="w-5 h-5 text-purple-400" /> Link Movies to {selectedTheatreForLink.name}
-                  </h4>
-                  <button 
-                    onClick={() => setSelectedTheatreForLink(null)}
-                    className="text-gray-400 hover:text-white text-xs font-semibold"
-                  >
-                    Cancel
-                  </button>
-                </div>
-
-                <p className="text-xs text-purple-300">Select which movies this theatre can project. Scheduled shows require mapped movies.</p>
-                
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 pt-2">
-                  {movies.map(movie => (
-                    <label 
-                      key={movie._id} 
-                      className={`flex items-center gap-2 p-3 rounded-lg border text-xs font-semibold cursor-pointer transition-all ${
-                        moviesChecked.includes(movie._id)
-                          ? 'bg-purple-950/30 border-purple-500 text-purple-200'
-                          : 'bg-slate-900/30 border-white/5 text-gray-400 hover:border-white/10'
-                      }`}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={moviesChecked.includes(movie._id)}
-                        onChange={() => handleCheckboxChange(movie._id)}
-                        className="rounded border-gray-650 bg-slate-900 text-purple-500 focus:ring-purple-500 focus:ring-opacity-25"
-                      />
-                      <span className="truncate">{movie.name}</span>
-                    </label>
-                  ))}
-                </div>
-
-                <div className="pt-4 flex gap-3">
-                  <button
-                    onClick={handleSaveLinks}
-                    className="bg-purple-650 hover:bg-purple-500 text-white rounded-lg px-5 py-2.5 text-xs font-bold transition-all uppercase tracking-wider cursor-pointer"
-                  >
-                    Save Linked Movies
-                  </button>
-                  <button
-                    onClick={() => setSelectedTheatreForLink(null)}
-                    className="text-gray-400 hover:text-white px-4 py-2 text-xs font-bold transition-colors"
-                  >
-                    Back
-                  </button>
-                </div>
-              </div>
-            ) : (
-              /* THEATRE GRID LIST */
-              theatres.length === 0 ? (
-                <p className="text-gray-400 text-sm py-6">No theatres created yet.</p>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {theatres.map(theatre => (
-                    <div key={theatre._id} className="glass rounded-xl p-5 border border-white/5 space-y-3 flex flex-col justify-between">
-                      <div className="space-y-1.5">
-                        <h4 className="font-extrabold text-white text-base uppercase leading-snug">{theatre.name}</h4>
-                        <p className="text-xs text-gray-400">{theatre.description}</p>
-                        <div className="text-[10px] text-gray-500 font-medium">City: {theatre.city} | PIN: {theatre.pincode}</div>
-                        <div className="text-[10px] text-purple-400 font-semibold pt-1">
-                          Linked Movies Count: {theatre.movies?.length || 0}
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-2 border-t border-white/5 pt-3.5 mt-2 justify-between">
-                        <button
-                          onClick={() => openLinkManager(theatre)}
-                          className="flex items-center gap-1 bg-purple-950/50 hover:bg-purple-900 border border-purple-500/25 text-purple-300 py-1.5 px-3 rounded-lg text-xs font-bold transition-colors cursor-pointer"
-                        >
-                          <Link2 className="w-3.5 h-3.5" />
-                          <span>Link Movies</span>
-                        </button>
-                        <button
-                          onClick={() => handleDeleteTheatre(theatre._id)}
-                          className="bg-red-950/20 text-red-400 hover:bg-red-950/40 border border-red-500/25 p-2 rounded-lg cursor-pointer"
-                          title="Delete Theatre"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* 3. SHOWS SECTION */}
-      {activeSection === 'shows' && (
-        <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
-          
-          {/* Add Show Form */}
-          <form onSubmit={handleAddShow} className="xl:col-span-1 glass rounded-2xl p-6 border border-white/5 space-y-4 h-fit shadow-lg">
-            <h3 className="text-lg font-bold text-white uppercase tracking-wider flex items-center gap-2 border-b border-white/5 pb-2.5">
-              <Plus className="w-4 h-4 text-purple-400" /> Create Show
-            </h3>
-
-            <div className="space-y-3.5 text-xs">
-              <div>
-                <label className="block font-semibold text-gray-400 mb-1.5 uppercase">Select Theatre</label>
-                <select
-                  required
-                  value={showTheatreId}
-                  onChange={(e) => {
-                    setShowTheatreId(e.target.value);
-                    setShowMovieId(''); // Reset selected movie
-                  }}
-                  className="w-full bg-slate-900/60 border border-white/10 rounded-lg py-2.5 px-3.5 text-white focus:outline-none focus:border-purple-500 text-sm"
-                >
-                  <option value="" className="bg-[#0b0f19]">-- Choose Theatre --</option>
-                  {theatres.map(t => (
-                    <option key={t._id} value={t._id} className="bg-[#0b0f19]">
-                      {t.name} ({t.city})
-                    </option>
-                  ))}
-                </select>
+          {/* SHOWS */}
+          {activeSection === 'shows' && (
+            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+               <div className="flex items-center justify-between">
+                <h2 className="text-xl font-semibold text-white">Show Schedules</h2>
+                <button onClick={() => setIsShowModalOpen(true)} className="flex items-center gap-2 bg-[#FF5A1F] text-white px-4 py-2.5 rounded-lg text-sm font-semibold hover:bg-[#FF7B39] transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5">
+                  <Plus className="w-4 h-4" /> Schedule Show
+                </button>
               </div>
 
-              <div>
-                <label className="block font-semibold text-gray-400 mb-1.5 uppercase">Select Movie</label>
-                <p className="text-[10px] text-gray-500 mb-1">Only movies linked to the selected theatre are valid.</p>
-                <select
-                  required
-                  value={showMovieId}
-                  disabled={!showTheatreId}
-                  onChange={(e) => setShowMovieId(e.target.value)}
-                  className="w-full bg-slate-900/60 border border-white/10 rounded-lg py-2.5 px-3.5 text-white focus:outline-none focus:border-purple-500 text-sm disabled:opacity-40"
-                >
-                  <option value="" className="bg-[#0b0f19]">-- Choose Movie --</option>
-                  {(() => {
-                    const activeTheatre = theatres.find(t => t._id === showTheatreId);
-                    if (!activeTheatre || !activeTheatre.movies) return null;
-                    return activeTheatre.movies.map(mId => {
-                      const movieObj = movies.find(mv => mv._id === mId);
-                      return movieObj ? (
-                        <option key={movieObj._id} value={movieObj._id} className="bg-[#0b0f19]">
-                          {movieObj.name}
-                        </option>
-                      ) : null;
-                    });
-                  })()}
-                </select>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block font-semibold text-gray-400 mb-1.5 uppercase">Show Time</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="06:30 PM"
-                    value={showTiming}
-                    onChange={(e) => setShowTiming(e.target.value)}
-                    className="w-full bg-slate-900/60 border border-white/10 rounded-lg py-2.5 px-3.5 text-white focus:outline-none focus:border-purple-500 text-sm"
-                  />
-                </div>
-                <div>
-                  <label className="block font-semibold text-gray-400 mb-1.5 uppercase">Format (e.g. 2D/3D)</label>
-                  <input
-                    type="text"
-                    placeholder="IMAX 3D"
-                    value={showFormat}
-                    onChange={(e) => setShowFormat(e.target.value)}
-                    className="w-full bg-slate-900/60 border border-white/10 rounded-lg py-2.5 px-3.5 text-white focus:outline-none focus:border-purple-500 text-sm"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block font-semibold text-gray-400 mb-1.5 uppercase">Total Seats Available</label>
-                  <input
-                    type="number"
-                    required
-                    value={showSeats}
-                    onChange={(e) => setShowSeats(e.target.value)}
-                    className="w-full bg-slate-900/60 border border-white/10 rounded-lg py-2.5 px-3.5 text-white focus:outline-none focus:border-purple-500 text-sm"
-                  />
-                </div>
-                <div>
-                  <label className="block font-semibold text-gray-400 mb-1.5 uppercase">Ticket Price (₹)</label>
-                  <input
-                    type="number"
-                    required
-                    value={showPrice}
-                    onChange={(e) => setShowPrice(e.target.value)}
-                    className="w-full bg-slate-900/60 border border-white/10 rounded-lg py-2.5 px-3.5 text-white focus:outline-none focus:border-purple-500 text-sm"
-                  />
-                </div>
-              </div>
-            </div>
-
-            <button
-              type="submit"
-              className="w-full bg-purple-650 hover:bg-purple-500 text-white rounded-lg py-2.5 font-bold transition-all text-xs uppercase tracking-wide cursor-pointer mt-3"
-            >
-              Schedule Show
-            </button>
-          </form>
-
-          {/* Shows Grid List */}
-          <div className="xl:col-span-2 space-y-4">
-            <h3 className="text-lg font-bold text-white uppercase tracking-wider">Scheduled Shows Timetable</h3>
-            {shows.length === 0 ? (
-              <p className="text-gray-400 text-sm py-6">No scheduled shows found.</p>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {shows.map(show => {
                   const movieObj = movies.find(m => m._id === show.movieId) || {};
-                  const theatreObj = show.theatreId || {}; // populated
-
+                  const theatreObj = show.theatreId || {};
                   return (
-                    <div key={show._id} className="glass rounded-xl p-4.5 border border-white/5 flex justify-between gap-4">
-                      <div className="space-y-1.5">
-                        <div className="flex items-center gap-2">
-                          <span className="text-[10px] font-bold text-purple-300 uppercase tracking-widest">{show.format || '2D'}</span>
-                          <span className="text-[10px] text-emerald-400 font-bold bg-emerald-950/20 px-2 py-0.5 rounded border border-emerald-500/10">₹{show.price}</span>
+                    <div key={show._id} className="relative bg-[#111111]/80 backdrop-blur-md border border-white/5 hover:border-white/20 rounded-2xl p-6 transition-all shadow-lg hover:shadow-xl group overflow-hidden">
+                      <div className="absolute top-0 right-0 p-4 opacity-10 pointer-events-none">
+                        <Calendar className="w-24 h-24 text-white" />
+                      </div>
+                      <div className="relative z-10 flex flex-col h-full">
+                        <div className="flex justify-between items-start mb-6">
+                           <div className="flex gap-2">
+                             <span className="px-2.5 py-1 bg-white/10 text-white text-xs font-bold rounded-lg backdrop-blur-md border border-white/10">{show.format || '2D'}</span>
+                             <span className="px-2.5 py-1 bg-emerald-500/20 text-emerald-300 text-xs font-bold rounded-lg border border-emerald-500/20">${show.price}</span>
+                           </div>
+                           <button onClick={() => handleDeleteShow(show._id)} className="text-gray-400 hover:text-red-400 p-2 hover:bg-red-500/10 rounded-lg transition-colors">
+                             <Trash2 className="w-4 h-4" />
+                           </button>
                         </div>
-                        <h4 className="font-extrabold text-white text-sm uppercase truncate max-w-[200px]" title={movieObj.name}>
-                          {movieObj.name || 'Unknown Movie'}
-                        </h4>
-                        
-                        <div className="text-[10px] text-gray-400 space-y-0.5">
-                          <div>Theatre: <strong className="text-gray-300 uppercase">{theatreObj.name || 'Unknown'}</strong></div>
-                          <div>Timing: <strong className="text-gray-300">{show.timing}</strong></div>
-                          <div>Total Seats: <strong className="text-gray-300">{show.noOfSeats}</strong></div>
+                        <h3 className="text-lg font-bold text-white mb-1 truncate pr-8">{movieObj.name || 'Unknown Movie'}</h3>
+                        <div className="space-y-2 mt-4 text-sm text-gray-400 bg-white/5 p-4 rounded-xl border border-white/5">
+                          <div className="flex justify-between">
+                            <span>Theatre</span>
+                            <span className="text-white font-medium">{theatreObj.name || 'Unknown'}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span>Time</span>
+                            <span className="text-white font-medium">{show.timing}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span>Seats</span>
+                            <span className="text-white font-medium">{show.noOfSeats} Total</span>
+                          </div>
                         </div>
                       </div>
-                      <button
-                        onClick={() => handleDeleteShow(show._id)}
-                        className="bg-red-950/20 text-red-400 hover:bg-red-950/40 border border-red-500/25 p-2 rounded-lg self-center cursor-pointer"
-                        title="Delete Show"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
                     </div>
                   );
                 })}
+                {shows.length === 0 && (
+                  <div className="col-span-full text-center py-12 text-gray-500 bg-[#111111]/50 rounded-2xl border border-white/5">
+                    No shows scheduled.
+                  </div>
+                )}
               </div>
-            )}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* --- MODALS --- */}
+
+      {/* Movie Modal */}
+      <Modal isOpen={isMovieModalOpen} onClose={() => setIsMovieModalOpen(false)} title="Create New Movie">
+        <form onSubmit={handleAddMovie} className="space-y-5">
+          <div className="space-y-4">
+            <div>
+              <label className={labelClass}>Title</label>
+              <input type="text" required placeholder="E.g. Inception" value={movieName} onChange={(e) => setMovieName(e.target.value)} className={inputClass} />
+            </div>
+            <div>
+              <label className={labelClass}>Description</label>
+              <textarea required placeholder="Brief synopsis..." value={movieDesc} onChange={(e) => setMovieDesc(e.target.value)} className={`${inputClass} h-24 resize-none`}></textarea>
+            </div>
+            <div>
+              <label className={labelClass}>Casts</label>
+              <input type="text" required placeholder="Comma separated names" value={movieCasts} onChange={(e) => setMovieCasts(e.target.value)} className={inputClass} />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className={labelClass}>Director</label>
+                <input type="text" required placeholder="Christopher Nolan" value={movieDirector} onChange={(e) => setMovieDirector(e.target.value)} className={inputClass} />
+              </div>
+              <div>
+                <label className={labelClass}>Language</label>
+                <input type="text" required placeholder="English" value={movieLang} onChange={(e) => setMovieLang(e.target.value)} className={inputClass} />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className={labelClass}>Release Date</label>
+                <input type="text" required placeholder="YYYY-MM-DD" value={movieDate} onChange={(e) => setMovieDate(e.target.value)} className={inputClass} />
+              </div>
+              <div>
+                <label className={labelClass}>Status</label>
+                <select value={movieStatus} onChange={(e) => setMovieStatus(e.target.value)} className={`${inputClass} appearance-none`}>
+                  <option value="RELEASED">Released</option>
+                  <option value="COMING_SOON">Coming Soon</option>
+                </select>
+              </div>
+            </div>
+            <div>
+              <label className={labelClass}>Trailer URL</label>
+              <input type="url" required placeholder="YouTube Link" value={movieTrailer} onChange={(e) => setMovieTrailer(e.target.value)} className={inputClass} />
+            </div>
+          </div>
+          <div className="pt-4 border-t border-white/5 flex justify-end gap-3">
+            <button type="button" onClick={() => setIsMovieModalOpen(false)} className="px-5 py-2.5 rounded-lg text-sm font-medium text-gray-400 hover:text-white transition-colors">Cancel</button>
+            <button type="submit" className="px-6 py-2.5 rounded-lg text-sm font-semibold bg-white text-black hover:bg-gray-200 transition-colors">Create Movie</button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Theatre Modal */}
+      <Modal isOpen={isTheatreModalOpen} onClose={() => setIsTheatreModalOpen(false)} title="Register Theatre">
+        <form onSubmit={handleAddTheatre} className="space-y-5">
+           <div className="space-y-4">
+            <div>
+              <label className={labelClass}>Theatre Name</label>
+              <input type="text" required placeholder="IMAX Downtown" value={theatreName} onChange={(e) => setTheatreName(e.target.value)} className={inputClass} />
+            </div>
+            <div>
+              <label className={labelClass}>Description</label>
+              <textarea placeholder="Facilities, features..." value={theatreDesc} onChange={(e) => setTheatreDesc(e.target.value)} className={`${inputClass} h-20 resize-none`}></textarea>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className={labelClass}>City</label>
+                <input type="text" required placeholder="New York" value={theatreCity} onChange={(e) => setTheatreCity(e.target.value)} className={inputClass} />
+              </div>
+              <div>
+                <label className={labelClass}>Pincode</label>
+                <input type="number" required placeholder="10001" value={theatrePin} onChange={(e) => setTheatrePin(e.target.value)} className={inputClass} />
+              </div>
+            </div>
+            <div>
+              <label className={labelClass}>Full Address</label>
+              <input type="text" required placeholder="123 Broadway St." value={theatreAddr} onChange={(e) => setTheatreAddr(e.target.value)} className={inputClass} />
+            </div>
+          </div>
+          <div className="pt-4 border-t border-white/5 flex justify-end gap-3">
+            <button type="button" onClick={() => setIsTheatreModalOpen(false)} className="px-5 py-2.5 rounded-lg text-sm font-medium text-gray-400 hover:text-white transition-colors">Cancel</button>
+            <button type="submit" className="px-6 py-2.5 rounded-lg text-sm font-semibold bg-white text-black hover:bg-gray-200 transition-colors">Add Theatre</button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Show Modal */}
+      <Modal isOpen={isShowModalOpen} onClose={() => setIsShowModalOpen(false)} title="Schedule New Show">
+        <form onSubmit={handleAddShow} className="space-y-5">
+          <div className="space-y-4">
+            <div>
+              <label className={labelClass}>Select Theatre</label>
+              <select required value={showTheatreId} onChange={(e) => { setShowTheatreId(e.target.value); setShowMovieId(''); }} className={`${inputClass} appearance-none`}>
+                <option value="">-- Choose Venue --</option>
+                {theatres.map(t => <option key={t._id} value={t._id}>{t.name} ({t.city})</option>)}
+              </select>
+            </div>
+            <div>
+              <label className={labelClass}>Select Movie</label>
+              <select required value={showMovieId} disabled={!showTheatreId} onChange={(e) => setShowMovieId(e.target.value)} className={`${inputClass} appearance-none disabled:opacity-50 disabled:cursor-not-allowed`}>
+                <option value="">-- Choose Film --</option>
+                {(() => {
+                  const activeT = theatres.find(t => t._id === showTheatreId);
+                  if (!activeT || !activeT.movies) return null;
+                  return activeT.movies.map(mId => {
+                    const m = movies.find(mv => mv._id === mId);
+                    return m ? <option key={m._id} value={m._id}>{m.name}</option> : null;
+                  });
+                })()}
+              </select>
+              {!showTheatreId && <p className="text-[10px] text-gray-500 mt-1">Select a theatre first to see mapped movies.</p>}
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className={labelClass}>Timing</label>
+                <input type="text" required placeholder="E.g. 19:30" value={showTiming} onChange={(e) => setShowTiming(e.target.value)} className={inputClass} />
+              </div>
+              <div>
+                <label className={labelClass}>Format</label>
+                <input type="text" placeholder="IMAX, 3D, Standard" value={showFormat} onChange={(e) => setShowFormat(e.target.value)} className={inputClass} />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className={labelClass}>Total Seats</label>
+                <input type="number" required value={showSeats} onChange={(e) => setShowSeats(e.target.value)} className={inputClass} />
+              </div>
+              <div>
+                <label className={labelClass}>Price ($)</label>
+                <input type="number" required value={showPrice} onChange={(e) => setShowPrice(e.target.value)} className={inputClass} />
+              </div>
+            </div>
+          </div>
+          <div className="pt-4 border-t border-white/5 flex justify-end gap-3">
+            <button type="button" onClick={() => setIsShowModalOpen(false)} className="px-5 py-2.5 rounded-lg text-sm font-medium text-gray-400 hover:text-white transition-colors">Cancel</button>
+            <button type="submit" className="px-6 py-2.5 rounded-lg text-sm font-semibold bg-[#FF5A1F] text-white hover:bg-[#FF7B39] transition-colors">Schedule</button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Link Movies Modal */}
+      <Modal isOpen={!!linkModalTheatre} onClose={() => setLinkModalTheatre(null)} title={`Link Movies to ${linkModalTheatre?.name || ''}`}>
+        <div className="space-y-6">
+          <p className="text-sm text-gray-400">Select which movies can be screened at this venue. Scheduled shows will only allow selecting from these mapped movies.</p>
+          
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[40vh] overflow-y-auto custom-scrollbar pr-2">
+            {movies.map(movie => (
+              <label
+                key={movie._id}
+                className={`flex items-center gap-3 p-4 rounded-xl border cursor-pointer transition-all ${
+                  moviesChecked.includes(movie._id)
+                    ? 'bg-[#FF5A1F]/10 border-[#FF5A1F]/50 text-white'
+                    : 'bg-white/5 border-white/10 text-gray-400 hover:border-white/20 hover:bg-white/10'
+                }`}
+              >
+                <input
+                  type="checkbox"
+                  checked={moviesChecked.includes(movie._id)}
+                  onChange={() => handleCheckboxChange(movie._id)}
+                  className="w-4 h-4 rounded border-gray-600 bg-black text-[#FF5A1F] focus:ring-[#FF5A1F] focus:ring-offset-black"
+                />
+                <span className="font-medium text-sm truncate">{movie.name}</span>
+              </label>
+            ))}
+          </div>
+
+          <div className="pt-4 border-t border-white/5 flex justify-end gap-3">
+            <button onClick={() => setLinkModalTheatre(null)} className="px-5 py-2.5 rounded-lg text-sm font-medium text-gray-400 hover:text-white transition-colors">Cancel</button>
+            <button onClick={handleSaveLinks} className="px-6 py-2.5 rounded-lg text-sm font-semibold bg-white text-black hover:bg-gray-200 transition-colors">Save Links</button>
           </div>
         </div>
-      )}
+      </Modal>
 
     </div>
   );

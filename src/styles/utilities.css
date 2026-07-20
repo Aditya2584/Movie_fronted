@@ -1,0 +1,153 @@
+/**
+ * CinePass Design System — Utilities
+ * Subtle animations · helpers · scroll behavior
+ */
+
+@layer utilities {
+  /* ─── Animation Delays ─────────────────────────────────────── */
+  .delay-75  { animation-delay: 75ms; }
+  .delay-100 { animation-delay: 100ms; }
+  .delay-150 { animation-delay: 150ms; }
+  .delay-200 { animation-delay: 200ms; }
+  .delay-300 { animation-delay: 300ms; }
+
+  /* ─── Transition Presets ───────────────────────────────────── */
+  .transition-default {
+    transition-property: color, background-color, border-color, opacity, transform, box-shadow;
+    transition-duration: var(--duration-normal);
+    transition-timing-function: var(--ease-default);
+  }
+
+  .transition-fast {
+    transition-duration: var(--duration-fast);
+    transition-timing-function: var(--ease-default);
+  }
+
+  .transition-slow {
+    transition-duration: var(--duration-slow);
+    transition-timing-function: var(--ease-default);
+  }
+
+  /* ─── Hover Lift ───────────────────────────────────────────── */
+  .hover-lift {
+    @apply hover:-translate-y-0.5 hover:shadow-md;
+    transition-property: color, background-color, border-color, opacity, transform, box-shadow;
+    transition-duration: var(--duration-normal);
+    transition-timing-function: var(--ease-default);
+  }
+
+  .hover-lift-sm {
+    @apply hover:-translate-y-px hover:shadow-sm;
+    transition-property: color, background-color, border-color, opacity, transform, box-shadow;
+    transition-duration: var(--duration-normal);
+    transition-timing-function: var(--ease-default);
+  }
+
+  /* ─── Focus Ring ───────────────────────────────────────────── */
+  .focus-ring {
+    @apply focus:outline-none focus:border-border-focus focus:ring-1 focus:ring-white/10;
+  }
+
+  .focus-ring-error {
+    @apply focus:outline-none focus:border-error focus:ring-1 focus:ring-red-500/20;
+  }
+
+  /* ─── Scrollbar ────────────────────────────────────────────── */
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  /* ─── Aspect Ratios ────────────────────────────────────────── */
+  .aspect-poster {
+    aspect-ratio: 2 / 3;
+  }
+
+  /* ─── Overlays (neutral, for hero/image fade) ──────────────── */
+  .overlay-fade-bottom {
+    @apply absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-bg-base to-transparent;
+  }
+
+  .overlay-fade-left {
+    @apply absolute inset-0 bg-gradient-to-r from-bg-base via-bg-base/80 to-transparent;
+  }
+}
+
+/* ─── Keyframes (subtle only) ────────────────────────────────── */
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* ─── Animation Classes ──────────────────────────────────────── */
+.animate-fadeIn {
+  animation: fadeIn var(--duration-normal) var(--ease-out) forwards;
+}
+
+.animate-fadeInUp {
+  animation: fadeInUp var(--duration-slow) var(--ease-out) forwards;
+}
+
+.animate-scaleIn {
+  animation: scaleIn var(--duration-slow) var(--ease-out) forwards;
+}
+
+/* Legacy aliases kept for existing pages — toned down, no loop */
+.animate-heroGlow {
+  /* intentionally inert; pages will migrate away from this */
+  animation: none;
+}
+
+.animate-float {
+  animation: none;
+}
+
+/* ─── Global Scrollbar ───────────────────────────────────────── */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-bg-base);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-border-strong);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-text-muted);
+}

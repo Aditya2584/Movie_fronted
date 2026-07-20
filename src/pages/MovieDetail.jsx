@@ -1,16 +1,42 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import API from '../services/api';
 import { getMoviePoster } from './Home';
-import { Calendar, User, Film, Clock, Landmark, MapPin, AlertCircle, ArrowLeft } from 'lucide-react';
+import {
+  Calendar,
+  User,
+  Film,
+  Clock,
+  Landmark,
+  MapPin,
+  AlertCircle,
+  ArrowLeft,
+  Play,
+  Ticket,
+  Users,
+} from 'lucide-react';
+import MovieCard from '../components/MovieCard';
 
-// Helper to convert standard watch URLs to embed URLs for YouTube
+const GENRES = ['Drama', 'Action', 'Thriller', 'Sci-Fi', 'Comedy', 'Romance', 'Horror', 'Adventure'];
+
+const getMovieMeta = (name = '') => {
+  const seed = name.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+  return {
+    rating: (((seed % 20) + 60) / 10).toFixed(1),
+    runtime: `${1 + (seed % 2)}h ${20 + (seed % 40)}m`,
+    genre: GENRES[seed % GENRES.length],
+  };
+};
+
+const getBackdropUrl = (posterUrl) => {
+  if (!posterUrl) return posterUrl;
+  return posterUrl.replace('w=600', 'w=1920').replace('q=80', 'q=85');
+};
+
 const getEmbedUrl = (url) => {
   if (!url) return '';
   try {
-    if (url.includes('youtube.com/embed/')) {
-      return url;
-    }
+    if (url.includes('youtube.com/embed/')) return url;
     let videoId = '';
     if (url.includes('youtube.com/watch')) {
       const urlObj = new URL(url);
@@ -20,7 +46,7 @@ const getEmbedUrl = (url) => {
       videoId = parts[parts.length - 1]?.split('?')[0];
     }
     return videoId ? `https://www.youtube.com/embed/${videoId}` : '';
-  } catch (e) {
+  } catch {
     return '';
   }
 };
@@ -29,20 +55,23 @@ const MovieDetail = () => {
   const { id } = useParams();
   const [movie, setMovie] = useState(null);
   const [shows, setShows] = useState([]);
+  const [recommended, setRecommended] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
   useEffect(() => {
     const fetchMovieData = async () => {
       try {
-        // Fetch Movie Details
-        const movieRes = await API.get(`/movies/${id}`);
+        const [movieRes, showsRes, moviesRes] = await Promise.all([
+          API.get(`/movies/${id}`),
+          API.get(`/shows?movieId=${id}`),
+          API.get('/movies'),
+        ]);
         setMovie(movieRes.data.data);
-
-        // Fetch Movie Shows
-        const showsRes = await API.get(`/shows?movieId=${id}`);
         setShows(showsRes.data.data || []);
-      } catch (err) {
+        const allMovies = moviesRes.data.data || [];
+        setRecommended(allMovies.filter((m) => m._id !== id).slice(0, 4));
+      } catch {
         setError('Error loading movie details.');
       } finally {
         setLoading(false);
@@ -51,180 +80,410 @@ const MovieDetail = () => {
     fetchMovieData();
   }, [id]);
 
+  const showsByTheatre = useMemo(() => {
+    return shows.reduce((acc, show) => {
+      const theatre = show.theatreId;
+      if (!theatre) return acc;
+      const key = theatre._id;
+      if (!acc[key]) {
+        acc[key] = {
+          name: theatre.name,
+          city: theatre.city,
+          address: theatre.address,
+          shows: [],
+        };
+      }
+      acc[key].shows.push(show);
+      return acc;
+    }, {});
+  }, [shows]);
+
+  const scrollToShowtimes = () => {
+    document.getElementById('showtimes')?.scrollIntoView({ behavior: 'smooth' });
+  };
+
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-500"></div>
+      <div className="min-h-screen bg-bg-base">
+        <div className="relative h-[60vh] min-h-[480px] overflow-hidden">
+          <div className="skeleton absolute inset-0" />
+          <div className="absolute inset-0 bg-gradient-to-t from-bg-base via-bg-base/60 to-transparent" />
+          <div className="container mx-auto px-6 lg:px-8 h-full flex items-end pb-12">
+            <div className="flex gap-8 w-full">
+              <div className="hidden lg:block skeleton w-[220px] h-[330px] rounded-2xl shrink-0" />
+              <div className="flex-1 space-y-4 pb-4">
+                <div className="skeleton h-4 w-24 rounded" />
+                <div className="skeleton h-12 w-2/3 max-w-lg rounded-lg" />
+                <div className="flex gap-3">
+                  <div className="skeleton h-8 w-20 rounded-lg" />
+                  <div className="skeleton h-8 w-24 rounded-lg" />
+                  <div className="skeleton h-8 w-16 rounded-lg" />
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div className="container mx-auto px-6 lg:px-8 py-16 space-y-8">
+          <div className="skeleton h-4 w-full max-w-3xl rounded" />
+          <div className="skeleton h-4 w-5/6 max-w-2xl rounded" />
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 pt-8">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="skeleton aspect-poster rounded-2xl" />
+            ))}
+          </div>
+        </div>
       </div>
     );
   }
 
   if (error || !movie) {
     return (
-      <div className="max-w-xl mx-auto mt-12 text-center space-y-4">
-        <div className="flex justify-center text-red-400">
-          <AlertCircle className="w-16 h-16" />
+      <div className="min-h-screen flex items-center justify-center px-6 bg-bg-base">
+        <div className="max-w-md text-center space-y-5">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl border border-error-border bg-error-muted">
+            <AlertCircle className="w-8 h-8 text-error" />
+          </div>
+          <h2 className="text-2xl font-semibold text-text-primary">Movie Not Found</h2>
+          <p className="type-body">{error || 'The requested movie could not be loaded.'}</p>
+          <Link
+            to="/"
+            className="inline-flex items-center gap-2 text-sm font-medium text-text-primary hover:text-text-secondary transition-colors"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Back to Home
+          </Link>
         </div>
-        <h2 className="text-2xl font-bold text-white">Movie Not Found</h2>
-        <p className="text-gray-400">{error || 'The requested movie could not be loaded.'}</p>
-        <Link to="/" className="inline-flex items-center gap-1.5 text-purple-400 hover:text-purple-300 font-semibold mt-4">
-          <ArrowLeft className="w-4 h-4" /> Back to Explore
-        </Link>
       </div>
     );
   }
 
-  // Group shows by Theatre
-  const showsByTheatre = shows.reduce((acc, show) => {
-    const theatre = show.theatreId;
-    if (!theatre) return acc;
-    const key = theatre._id;
-    if (!acc[key]) {
-      acc[key] = {
-        name: theatre.name,
-        city: theatre.city,
-        address: theatre.address,
-        shows: []
-      };
-    }
-    acc[key].shows.push(show);
-    return acc;
-  }, {});
-
   const embedTrailer = getEmbedUrl(movie.trailerUrl);
+  const poster = getMoviePoster(movie.name);
+  const backdrop = getBackdropUrl(poster);
+  const meta = getMovieMeta(movie.name);
+  const hasShowtimes = Object.keys(showsByTheatre).length > 0;
+  const firstShow = hasShowtimes ? Object.values(showsByTheatre)[0]?.shows[0] : null;
 
   return (
-    <div className="space-y-12">
-      {/* Back navigation */}
-      <div>
-        <Link to="/" className="inline-flex items-center gap-2 text-gray-400 hover:text-purple-400 font-medium transition-colors">
-          <ArrowLeft className="w-5 h-5" />
-          <span>Back to Explore</span>
-        </Link>
-      </div>
+    <div className="min-h-screen bg-bg-base">
+      {/* ─── Cinematic Hero ─────────────────────────────────── */}
+      <section className="relative h-[65vh] min-h-[520px] max-h-[720px] overflow-hidden">
+        <img
+          src={backdrop}
+          alt=""
+          aria-hidden="true"
+          className="absolute inset-0 w-full h-full object-cover object-center scale-105"
+        />
+        <div className="absolute inset-0 bg-gradient-to-r from-bg-base via-bg-base/90 to-bg-base/30" />
+        <div className="absolute inset-0 bg-gradient-to-t from-bg-base via-bg-base/50 to-bg-base/30" />
+        <div className="absolute inset-y-0 right-0 w-1/2 bg-gradient-to-l from-bg-base/60 to-transparent hidden lg:block" />
 
-      {/* Movie Info Header */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Left Column: Poster Image */}
-        <div className="lg:col-span-1">
-          <div className="glass rounded-3xl overflow-hidden border border-white/10 shadow-2xl relative aspect-[2/3] max-w-sm mx-auto">
-            <img 
-              src={getMoviePoster(movie.name)} 
-              alt={movie.name}
-              className="w-full h-full object-cover"
-            />
-            <div className="absolute top-4 right-4 bg-purple-600 text-white font-bold text-xs uppercase px-2.5 py-1 rounded shadow-lg">
-              {movie.releaseStatus}
+        <div className="relative z-10 container mx-auto px-6 lg:px-8 h-full flex items-end pb-10 lg:pb-16">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 w-full items-end">
+            {/* Floating poster */}
+            <div className="lg:col-span-3 flex justify-center lg:justify-start">
+              <div className="relative -mb-20 lg:-mb-32 hero-poster-float">
+                <div className="absolute -inset-4 rounded-3xl bg-white/[0.03] blur-2xl pointer-events-none" />
+                <div className="relative w-[140px] sm:w-[180px] lg:w-[220px] rounded-2xl overflow-hidden border border-border shadow-xl">
+                  <img
+                    src={poster}
+                    alt={movie.name}
+                    className="w-full aspect-poster object-cover"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent pointer-events-none" />
+                </div>
+              </div>
+            </div>
+
+            {/* Title & meta */}
+            <div className="lg:col-span-9 space-y-5 lg:space-y-6 animate-fadeInUp">
+              <Link
+                to="/"
+                className="inline-flex items-center gap-2 text-sm text-text-muted hover:text-text-primary transition-colors duration-200"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                Back to Home
+              </Link>
+
+              <div className="space-y-4">
+                <h1 className="type-hero max-w-4xl">{movie.name}</h1>
+
+                <div className="flex flex-wrap items-center gap-3">
+                  <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-black/50 backdrop-blur-sm border border-white/10">
+                    <span className="text-[10px] font-bold tracking-widest text-[#F5C518]">IMDb</span>
+                    <span className="text-sm font-semibold text-text-primary tabular-nums">
+                      {meta.rating}
+                      <span className="text-text-muted font-normal">/10</span>
+                    </span>
+                  </div>
+                  <span className="inline-flex items-center gap-1.5 text-sm text-text-secondary">
+                    <Clock className="w-3.5 h-3.5 text-text-muted" />
+                    {meta.runtime}
+                  </span>
+                  <span className="px-2.5 py-1 rounded-md bg-bg-elevated/80 border border-border text-xs text-text-secondary">
+                    {meta.genre}
+                  </span>
+                  {movie.language && (
+                    <span className="px-2.5 py-1 rounded-md bg-bg-elevated/80 border border-border text-xs text-text-secondary">
+                      {movie.language}
+                    </span>
+                  )}
+                  <span
+                    className={`px-2.5 py-1 rounded-md text-xs font-medium border ${
+                      movie.releaseStatus === 'RELEASED'
+                        ? 'bg-bg-elevated border-border text-text-secondary'
+                        : 'bg-bg-elevated border-border text-text-muted'
+                    }`}
+                  >
+                    {movie.releaseStatus === 'RELEASED' ? 'Released' : 'Coming Soon'}
+                  </span>
+                  {movie.releaseDate && (
+                    <span className="inline-flex items-center gap-1.5 text-sm text-text-muted">
+                      <Calendar className="w-3.5 h-3.5" />
+                      {movie.releaseDate}
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Book CTA */}
+              <div className="flex flex-wrap gap-3 pt-1">
+                {hasShowtimes ? (
+                  <button
+                    type="button"
+                    onClick={scrollToShowtimes}
+                    className="btn-primary inline-flex items-center gap-2 px-6 py-3 cursor-pointer"
+                  >
+                    <Ticket className="w-4 h-4" />
+                    Book Tickets
+                  </button>
+                ) : firstShow ? (
+                  <Link
+                    to={`/booking/${firstShow._id}`}
+                    className="btn-primary inline-flex items-center gap-2 px-6 py-3 cursor-pointer"
+                  >
+                    <Ticket className="w-4 h-4" />
+                    Book Tickets
+                  </Link>
+                ) : (
+                  <button
+                    type="button"
+                    disabled
+                    className="btn-primary inline-flex items-center gap-2 px-6 py-3 opacity-50 cursor-not-allowed"
+                  >
+                    <Ticket className="w-4 h-4" />
+                    Book Tickets
+                  </button>
+                )}
+                {embedTrailer && (
+                  <a
+                    href="#trailer"
+                    className="btn-outline inline-flex items-center gap-2 px-6 py-3"
+                  >
+                    <Play className="w-4 h-4" />
+                    Watch Trailer
+                  </a>
+                )}
+              </div>
             </div>
           </div>
         </div>
+      </section>
 
-        {/* Right Column: Title and Details */}
-        <div className="lg:col-span-2 space-y-6 flex flex-col justify-between">
-          <div className="space-y-4">
-            <h1 className="text-4xl md:text-5xl font-black text-white uppercase tracking-tight leading-tight">
-              {movie.name}
-            </h1>
-            
-            <div className="flex flex-wrap items-center gap-3 text-sm">
-              <span className="bg-purple-950/60 border border-purple-500/30 text-purple-300 font-semibold px-3 py-1 rounded">
-                {movie.language}
-              </span>
-              <span className="bg-slate-900 border border-white/5 text-gray-300 px-3 py-1 rounded font-semibold">
-                Released: {movie.releaseDate}
-              </span>
-            </div>
+      {/* ─── Main Content ───────────────────────────────────── */}
+      <div className="container mx-auto px-6 lg:px-8 pt-24 lg:pt-36 pb-20 space-y-20 lg:space-y-24">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16">
+          <div className="lg:col-span-8 space-y-16 lg:space-y-20">
+            {/* Story */}
+            <section className="space-y-4">
+              <p className="type-overline">Story</p>
+              <h2 className="type-section">Synopsis</h2>
+              <p className="type-body-lg max-w-3xl leading-relaxed">{movie.description}</p>
+            </section>
 
-            <p className="text-gray-300 leading-relaxed text-base">
-              {movie.description}
-            </p>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border-t border-b border-white/5 py-4 my-2">
-              <div className="flex items-center space-x-2 text-sm text-gray-400">
-                <User className="w-4 h-4 text-purple-400" />
-                <span><strong className="text-gray-200">Director:</strong> {movie.director}</span>
+            {/* Cast & Director */}
+            <section className="space-y-6">
+              <p className="type-overline">Credits</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="rounded-xl border border-border bg-bg-card p-6 space-y-2">
+                  <div className="flex items-center gap-2 text-text-muted">
+                    <User className="w-4 h-4" />
+                    <span className="type-caption">Director</span>
+                  </div>
+                  <p className="type-body-lg font-medium text-text-primary">{movie.director}</p>
+                </div>
+                <div className="rounded-xl border border-border bg-bg-card p-6 space-y-2">
+                  <div className="flex items-center gap-2 text-text-muted">
+                    <Users className="w-4 h-4" />
+                    <span className="type-caption">Cast</span>
+                  </div>
+                  <p className="type-body-lg font-medium text-text-primary leading-relaxed">
+                    {movie.casts?.join(', ')}
+                  </p>
+                </div>
               </div>
-              <div className="flex items-center space-x-2 text-sm text-gray-400">
-                <Film className="w-4 h-4 text-purple-400" />
-                <span><strong className="text-gray-200">Casts:</strong> {movie.casts.join(', ')}</span>
+            </section>
+
+            {/* Trailer */}
+            <section id="trailer" className="space-y-6 scroll-mt-28">
+              <div className="space-y-1">
+                <p className="type-overline">Preview</p>
+                <h2 className="type-section flex items-center gap-3">
+                  <Play className="w-6 h-6 text-text-muted" />
+                  Trailer
+                </h2>
               </div>
-            </div>
+              {embedTrailer ? (
+                <div className="w-full max-w-4xl aspect-video rounded-2xl overflow-hidden border border-border bg-bg-card shadow-lg">
+                  <iframe
+                    src={embedTrailer}
+                    title={`${movie.name} Trailer`}
+                    className="w-full h-full"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                  />
+                </div>
+              ) : (
+                <div className="w-full max-w-4xl aspect-video rounded-2xl flex flex-col items-center justify-center border border-border bg-bg-card text-text-muted gap-3">
+                  <Play className="w-10 h-10 text-text-placeholder" />
+                  <span className="type-body">No trailer available</span>
+                </div>
+              )}
+            </section>
           </div>
 
-          {/* Video Trailer Iframe */}
-          {embedTrailer ? (
-            <div className="w-full aspect-video rounded-2xl overflow-hidden glass border border-white/10 shadow-lg mt-4">
-              <iframe
-                src={embedTrailer}
-                title={`${movie.name} Trailer`}
-                className="w-full h-full"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
-              ></iframe>
+          {/* Sidebar — quick info */}
+          <aside className="lg:col-span-4">
+            <div className="lg:sticky lg:top-24 rounded-2xl border border-border bg-bg-card p-8 space-y-6">
+              <h3 className="type-card-title">At a glance</h3>
+              <dl className="space-y-4">
+                <div>
+                  <dt className="type-caption">Genre</dt>
+                  <dd className="text-sm text-text-primary mt-1">{meta.genre}</dd>
+                </div>
+                <div>
+                  <dt className="type-caption">Runtime</dt>
+                  <dd className="text-sm text-text-primary mt-1">{meta.runtime}</dd>
+                </div>
+                <div>
+                  <dt className="type-caption">Language</dt>
+                  <dd className="text-sm text-text-primary mt-1">{movie.language}</dd>
+                </div>
+                <div>
+                  <dt className="type-caption">Director</dt>
+                  <dd className="text-sm text-text-primary mt-1">{movie.director}</dd>
+                </div>
+              </dl>
+              {hasShowtimes && (
+                <button
+                  type="button"
+                  onClick={scrollToShowtimes}
+                  className="btn-primary w-full flex items-center justify-center gap-2 py-3 cursor-pointer"
+                >
+                  <Ticket className="w-4 h-4" />
+                  Book Tickets
+                </button>
+              )}
+            </div>
+          </aside>
+        </div>
+
+        {/* Showtimes */}
+        <section id="showtimes" className="space-y-8 scroll-mt-28">
+          <div className="space-y-1">
+            <p className="type-overline">Showtimes</p>
+            <h2 className="type-section flex items-center gap-3">
+              <Ticket className="w-6 h-6 text-text-muted" />
+              Available Showtimes
+            </h2>
+          </div>
+
+          {!hasShowtimes ? (
+            <div className="rounded-2xl border border-border glass px-6 py-16 text-center">
+              <Landmark className="w-10 h-10 text-text-muted mx-auto mb-4" />
+              <p className="type-body max-w-md mx-auto">
+                {movie.releaseStatus === 'RELEASED'
+                  ? 'No shows currently scheduled for this movie. Theatres will release bookings soon.'
+                  : 'Tickets will open once the movie is officially released.'}
+              </p>
             </div>
           ) : (
-            <div className="w-full aspect-video rounded-2xl flex items-center justify-center glass border border-white/5 text-gray-500 mt-4">
-              <span>No Video Trailer Available</span>
+            <div className="space-y-6">
+              {Object.values(showsByTheatre).map((theatre, idx) => (
+                <div
+                  key={idx}
+                  className="rounded-2xl border border-border bg-bg-card p-8
+                    flex flex-col md:flex-row gap-6 md:items-center md:justify-between
+                    transition-all duration-300 hover:border-border-hover hover:shadow-md"
+                >
+                  <div className="space-y-2 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <Landmark className="w-5 h-5 text-text-muted shrink-0" />
+                      <h3 className="text-lg font-semibold text-text-primary">{theatre.name}</h3>
+                    </div>
+                    <div className="flex items-start gap-1.5 text-sm text-text-muted pl-7">
+                      <MapPin className="w-4 h-4 shrink-0 mt-0.5" />
+                      <span>{theatre.address}, {theatre.city}</span>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap gap-3">
+                    {theatre.shows.map((show) => (
+                      <Link
+                        to={`/booking/${show._id}`}
+                        key={show._id}
+                        className="group min-w-[110px] rounded-xl border border-border bg-bg-secondary px-4 py-3 text-center
+                          transition-all duration-200 hover:border-border-hover hover:bg-bg-hover hover:-translate-y-0.5"
+                      >
+                        <span className="block text-sm font-semibold text-text-primary">
+                          {show.timing}
+                        </span>
+                        <span className="block text-[10px] text-text-muted uppercase mt-0.5 tracking-wide">
+                          {show.format || '2D'}
+                        </span>
+                        <span className="block text-xs font-medium text-text-secondary mt-2">
+                          ₹{show.price}
+                        </span>
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              ))}
             </div>
           )}
-        </div>
-      </div>
+        </section>
 
-      {/* Showtimes & Timetables */}
-      <div className="space-y-6">
-        <div className="flex items-center space-x-2 border-b border-white/5 pb-4">
-          <Clock className="w-6 h-6 text-purple-400" />
-          <h2 className="text-2xl font-bold text-white uppercase tracking-wider">Book Show Timings</h2>
-        </div>
-
-        {Object.keys(showsByTheatre).length === 0 ? (
-          <div className="text-center py-16 glass rounded-2xl border border-white/5">
-            <Landmark className="w-12 h-12 text-gray-650 mx-auto mb-3" />
-            <p className="text-gray-400 max-w-md mx-auto">
-              {movie.releaseStatus === 'RELEASED' 
-                ? 'No shows currently scheduled for this movie. Theatres will release bookings soon!' 
-                : 'Tickets will open once the movie is officially released! Stay tuned.'}
-            </p>
-          </div>
-        ) : (
-          <div className="space-y-6">
-            {Object.values(showsByTheatre).map((theatre, idx) => (
-              <div key={idx} className="glass rounded-2xl p-6 border border-white/5 flex flex-col md:flex-row gap-6 justify-between items-start md:items-center">
-                <div className="space-y-1">
-                  <div className="flex items-center space-x-2">
-                    <Landmark className="w-5 h-5 text-purple-400" />
-                    <h3 className="text-lg font-bold text-white uppercase">{theatre.name}</h3>
-                  </div>
-                  <div className="flex items-center space-x-1.5 text-xs text-gray-400 pl-7">
-                    <MapPin className="w-3.5 h-3.5 text-gray-500" />
-                    <span>{theatre.address}, {theatre.city}</span>
-                  </div>
-                </div>
-
-                <div className="flex flex-wrap gap-3 w-full md:w-auto">
-                  {theatre.shows.map(show => (
-                    <Link
-                      to={`/booking/${show._id}`}
-                      key={show._id}
-                      className="bg-slate-900/60 hover:bg-purple-950/40 hover:border-purple-500/50 border border-white/10 rounded-xl p-3.5 text-center min-w-[120px] transition-all group flex flex-col justify-between"
-                    >
-                      <span className="text-sm font-semibold text-purple-300 group-hover:text-purple-200">
-                        {show.timing}
-                      </span>
-                      <span className="text-[10px] text-gray-500 uppercase mt-0.5">
-                        {show.format || '2D'}
-                      </span>
-                      <span className="text-xs font-bold text-emerald-400 mt-2 bg-emerald-950/20 px-2 py-0.5 rounded border border-emerald-500/10">
-                        ₹{show.price}
-                      </span>
-                    </Link>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
+        {/* Recommended */}
+        {recommended.length > 0 && (
+          <section className="space-y-8">
+            <div className="space-y-1">
+              <p className="type-overline">You may also like</p>
+              <h2 className="type-section">Recommended Movies</h2>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-5 md:gap-6">
+              {recommended.map((rec, idx) => (
+                <MovieCard
+                  key={rec._id}
+                  movie={rec}
+                  poster={getMoviePoster(rec.name)}
+                  index={idx}
+                />
+              ))}
+            </div>
+          </section>
         )}
       </div>
+
+      {/* Poster float animation */}
+      <style>{`
+        .hero-poster-float {
+          animation: detailPosterFloat 7s ease-in-out infinite;
+        }
+        @keyframes detailPosterFloat {
+          0%, 100% { transform: translateY(0); }
+          50%      { transform: translateY(-8px); }
+        }
+      `}</style>
     </div>
   );
 };
