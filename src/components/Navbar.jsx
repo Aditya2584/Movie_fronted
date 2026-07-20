@@ -84,18 +84,18 @@ const Navbar = () => {
 
   return (
     <header 
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 border-b
+      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 border
         ${scrolled 
-          ? 'bg-[rgba(10,10,10,0.85)] backdrop-blur-[24px] border-[rgba(255,255,255,0.08)] shadow-[0_4px_30px_rgba(0,0,0,0.1)]' 
+          ? 'bg-[rgba(10,10,10,0.85)] backdrop-blur-[24px] border-[rgba(255,255,255,0.18)] shadow-[0_4px_30px_rgba(0,0,0,0.5)]' 
           : 'bg-[rgba(10,10,10,0.7)] backdrop-blur-[20px] border-[rgba(255,255,255,0.05)]'
-        } h-[76px]`}
+        } h-[60px] rounded-4xl`}
     >
       <div className="container mx-auto px-6 h-full flex items-center justify-between">
         
         {/* Left Section */}
         <div className="w-1/3 flex justify-start">
           <Link to="/" className="flex items-center gap-3 group">
-            <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-white/5 border border-white/10 group-hover:bg-white/10 transition-colors">
+            <div className="flex items-center justify-center w-8 h-2 rounded-lg bg-white/5 border border-white/10 group-hover:bg-white/10 transition-colors">
               <Film className="w-4 h-4 text-white" strokeWidth={2.5} />
             </div>
             <span className="text-[17px] font-bold text-white tracking-wide">
