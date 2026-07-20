@@ -91,28 +91,17 @@ const Navbar = () => {
   );
 
   return (
-    <header
-      className={`sticky top-0 z-50 transition-all duration-500 ease-in-out ${
-        isSolid
-          ? 'bg-bg-base/70 backdrop-blur-xl border-b border-border shadow-sm'
-          : 'bg-transparent border-b border-transparent'
-      }`}
-    >
-      <div className="container mx-auto px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
-
-          {/* Logo */}
-          <Link
-            to="/"
-            className="flex items-center gap-3 shrink-0 group transition-opacity duration-200 hover:opacity-80"
-          >
-            <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-bg-elevated border border-border transition-colors duration-200 group-hover:border-border-hover">
-              <Film className="w-4 h-4 text-text-primary" />
-            </div>
-            <span className="text-sm font-semibold text-text-primary tracking-tight hidden sm:block">
-              CinePass
-            </span>
-          </Link>
+    <header className="sticky top-0 z-50 glass border-b border-white/10 backdrop-blur-md">
+      <div className="container mx-auto px-4 py-4 flex items-center justify-between">
+        {/* Logo */}
+        <Link to="/" className="flex items-center space-x-2 group">
+          <div className="bg-purple-600 p-2 rounded-lg group-hover:bg-purple-500 transition-colors shadow-lg shadow-purple-500/20">
+            <Film className="w-6 h-6 text-white" />
+          </div>
+          <span className="text-2xl font-bold bg-gradient-to-r from-purple-400 to-indigo-400 bg-clip-text text-transparent tracking-wider">
+            CHATKILA CHUT
+          </span>
+        </Link>
 
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center gap-1">
@@ -237,8 +226,7 @@ const Navbar = () => {
               {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </button>
           </div>
-        </div>
-      </div>
+    </div>
 
       {/* Mobile Menu */}
       {mobileMenuOpen && (
